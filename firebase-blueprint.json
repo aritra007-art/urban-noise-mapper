@@ -1,0 +1,23 @@
+{
+  "entities": {
+    "NoiseMeasurement": {
+      "title": "Noise Measurement",
+      "description": "A single noise level measurement with location and timestamp.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "The user ID who recorded the measurement." },
+        "db": { "type": "number", "description": "The noise level in decibels." },
+        "lat": { "type": "number", "description": "Latitude of the measurement." },
+        "lng": { "type": "number", "description": "Longitude of the measurement." },
+        "timestamp": { "type": "string", "format": "date-time", "description": "When the measurement was taken." }
+      },
+      "required": ["uid", "db", "lat", "lng", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/noise_measurements/{measurementId}": {
+      "schema": "NoiseMeasurement",
+      "description": "Collection of urban noise measurements."
+    }
+  }
+}
