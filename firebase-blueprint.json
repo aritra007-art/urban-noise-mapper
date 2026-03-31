@@ -9,9 +9,10 @@
         "db": { "type": "number", "description": "The noise level in decibels." },
         "lat": { "type": "number", "description": "Latitude of the measurement." },
         "lng": { "type": "number", "description": "Longitude of the measurement." },
+        "category": { "type": "string", "description": "The category of the place." },
         "timestamp": { "type": "string", "format": "date-time", "description": "When the measurement was taken." }
       },
-      "required": ["uid", "db", "lat", "lng", "timestamp"]
+      "required": ["uid", "db", "lat", "lng", "category", "timestamp"]
     },
     "User": {
       "title": "User Profile",

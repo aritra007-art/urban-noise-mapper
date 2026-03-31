@@ -4,6 +4,7 @@ export interface NoiseMeasurement {
   db: number;
   lat: number;
   lng: number;
+  category: string;
   timestamp: string;
 }
 

@@ -12,18 +12,20 @@ service cloud.firestore {
     //   - db: number (required) - Noise level in decibels
     //   - lat: number (required) - Latitude
     //   - lng: number (required) - Longitude
+    //   - category: string (required) - Place category
     //   - timestamp: string (required) - ISO 8601 timestamp
     //
     // ===============================================================
 
     function isValidMeasurement(data) {
-      return data.keys().hasAll(['uid', 'db', 'lat', 'lng', 'timestamp']) &&
+      return data.keys().hasAll(['uid', 'db', 'lat', 'lng', 'category', 'timestamp']) &&
              data.uid is string &&
              data.db is number &&
              data.lat is number &&
              data.lng is number &&
+             data.category is string &&
              data.timestamp is string &&
-             data.keys().hasOnly(['uid', 'db', 'lat', 'lng', 'timestamp']);
+             data.keys().hasOnly(['uid', 'db', 'lat', 'lng', 'category', 'timestamp']);
     }
 
     match /noise_measurements/{measurementId} {
