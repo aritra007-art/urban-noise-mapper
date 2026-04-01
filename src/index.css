@@ -1,6 +1,8 @@
 @import "tailwindcss";
 @import "leaflet/dist/leaflet.css";
 
+@variant dark (&:where(.dark, .dark *));
+
 @theme {
   --color-noise-low: #10b981;
   --color-noise-med: #f59e0b;
@@ -10,17 +12,26 @@
 
 @layer base {
   body {
-    @apply bg-slate-50 text-slate-900 selection:bg-orange-500/30;
+    @apply bg-slate-50 text-slate-900 selection:bg-orange-500/30 transition-colors duration-300;
+  }
+  .dark body {
+    @apply bg-black text-slate-100;
   }
 }
 
 @layer components {
   .glass-card {
-    @apply bg-white/80 backdrop-blur-xl border border-slate-200 rounded-2xl shadow-xl;
+    @apply bg-white/80 backdrop-blur-xl border border-slate-200 rounded-2xl shadow-xl transition-all duration-300;
+  }
+  .dark .glass-card {
+    @apply bg-zinc-950/80 border-zinc-800 shadow-2xl shadow-black/50;
   }
   
   .glass-panel {
-    @apply bg-white/70 backdrop-blur-md border-b border-slate-200;
+    @apply bg-white/70 backdrop-blur-md border-b border-slate-200 transition-all duration-300;
+  }
+  .dark .glass-panel {
+    @apply bg-black/70 border-zinc-800;
   }
 
   .atmosphere {
@@ -28,7 +39,14 @@
       radial-gradient(circle at 20% 30%, rgba(16, 185, 129, 0.08) 0%, transparent 60%),
       radial-gradient(circle at 80% 70%, rgba(6, 182, 212, 0.05) 0%, transparent 60%),
       radial-gradient(circle at 50% 50%, rgba(34, 197, 94, 0.03) 0%, transparent 80%);
-    @apply fixed inset-0 pointer-events-none z-0;
+    @apply fixed inset-0 pointer-events-none z-0 transition-opacity duration-1000;
+  }
+  .dark .atmosphere {
+    background: 
+      radial-gradient(circle at 20% 30%, rgba(16, 185, 129, 0.1) 0%, transparent 60%),
+      radial-gradient(circle at 80% 70%, rgba(6, 182, 212, 0.08) 0%, transparent 60%),
+      radial-gradient(circle at 50% 50%, rgba(34, 197, 94, 0.04) 0%, transparent 80%);
+    opacity: 0.4;
   }
 
   @keyframes float {
@@ -58,5 +76,8 @@
   }
   .custom-scrollbar::-webkit-scrollbar-thumb {
     @apply bg-slate-300 rounded-full hover:bg-slate-400;
+  }
+  .dark .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-zinc-800 rounded-full hover:bg-zinc-700;
   }
 }

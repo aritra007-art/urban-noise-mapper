@@ -32,7 +32,9 @@ import {
   Leaf,
   Bird,
   Trees,
-  Flower
+  Flower,
+  Sun,
+  Moon
 } from 'lucide-react';
 import * as d3 from 'd3';
 import Papa from 'papaparse';
@@ -118,11 +120,11 @@ class ErrorBoundary extends React.Component<any, any> {
       }
 
       return (
-        <div className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-900 p-6">
-          <div className="max-w-md w-full bg-white border border-red-500/30 rounded-xl p-8 text-center">
+        <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-black text-slate-900 dark:text-slate-100 p-6">
+          <div className="max-w-md w-full bg-white dark:bg-zinc-950 border border-red-500/30 rounded-xl p-8 text-center">
             <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
             <h2 className="text-xl font-bold mb-2">System Error</h2>
-            <p className="text-slate-500 mb-6">{errorMessage}</p>
+            <p className="text-slate-500 dark:text-slate-400 mb-6">{errorMessage}</p>
             <button 
               onClick={() => window.location.reload()}
               className="px-6 py-2 bg-red-500 hover:bg-red-600 rounded-lg transition-colors"
@@ -160,7 +162,9 @@ const FrequencySpectrum = ({ data }: { data: Uint8Array }) => {
       .attr('y', d => chartHeight - (d / 255) * chartHeight)
       .attr('width', Math.max(0, barWidth - 1))
       .attr('height', d => (d / 255) * chartHeight)
-      .attr('fill', d => d3.interpolateTurbo(d / 255));
+      .attr('fill', d => d3.scaleLinear<string>()
+        .domain([0, 64, 128, 192, 255])
+        .range(["#10b981", "#fbbf24", "#f97316", "#ef4444", "#7c3aed"])(d));
 
     // Add labels if they don't exist
     if (svg.select('.labels').empty()) {
@@ -180,7 +184,8 @@ const FrequencySpectrum = ({ data }: { data: Uint8Array }) => {
         .attr('x', d => d.x)
         .attr('y', height - 2)
         .attr('text-anchor', d => d.anchor || 'start')
-        .attr('fill', '#64748b')
+        .attr('fill', 'currentColor')
+        .attr('class', 'text-slate-500 dark:text-slate-400')
         .attr('font-size', '8px')
         .attr('font-family', 'monospace')
         .text(d => d.text);
@@ -188,7 +193,7 @@ const FrequencySpectrum = ({ data }: { data: Uint8Array }) => {
   }, [data]);
 
   return (
-    <div className="w-full h-32 bg-slate-100/50 rounded-xl overflow-hidden border border-slate-200">
+    <div className="w-full h-32 bg-slate-100/50 dark:bg-slate-800/50 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800">
       <svg ref={svgRef} className="w-full h-full" />
     </div>
   );
@@ -204,7 +209,7 @@ const MapUpdater = ({ center }: { center: [number, number] }) => {
   return null;
 };
 
-const NoiseHeatmap = ({ data, userLocation }: { data: NoiseMeasurement[], userLocation: { lat: number, lng: number } | null }) => {
+const NoiseHeatmap = ({ data, userLocation, theme, toggleTheme }: { data: NoiseMeasurement[], userLocation: { lat: number, lng: number } | null, theme: 'light' | 'dark', toggleTheme: () => void }) => {
   const [selectedPoint, setSelectedPoint] = useState<NoiseMeasurement | null>(null);
 
   const center = useMemo(() => {
@@ -217,14 +222,14 @@ const NoiseHeatmap = ({ data, userLocation }: { data: NoiseMeasurement[], userLo
 
   if (data.length === 0 && !userLocation) {
     return (
-      <div className="w-full h-full min-h-[400px] bg-slate-100/50 rounded-xl border border-slate-200 flex items-center justify-center text-slate-400 font-mono text-sm">
+      <div className="w-full h-full min-h-[400px] bg-slate-100/50 dark:bg-zinc-900/50 rounded-xl border border-slate-200 dark:border-zinc-800 flex items-center justify-center text-slate-500 dark:text-slate-400 font-mono text-sm">
         NO DATA COLLECTED
       </div>
     );
   }
 
   return (
-    <div className="w-full h-full min-h-[400px] bg-slate-100/50 rounded-xl border border-slate-200 relative overflow-hidden z-0">
+    <div className="w-full h-full min-h-[400px] bg-slate-100/50 dark:bg-zinc-900/50 rounded-xl border border-slate-200 dark:border-zinc-800 relative overflow-hidden z-0">
       <MapContainer 
         center={center} 
         zoom={15} 
@@ -233,8 +238,12 @@ const NoiseHeatmap = ({ data, userLocation }: { data: NoiseMeasurement[], userLo
         className="z-0"
       >
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution={theme === 'light' 
+            ? '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            : '&copy; <a href="https://carto.com/attributions">CARTO</a>'}
+          url={theme === 'light'
+            ? "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            : "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"}
         />
         <MapUpdater center={center} />
         {data.map((d, i) => (
@@ -253,16 +262,31 @@ const NoiseHeatmap = ({ data, userLocation }: { data: NoiseMeasurement[], userLo
               click: () => setSelectedPoint(d)
             }}
           >
-            <Popup>
-              <div className="font-mono text-[10px]">
-                <div className="font-bold text-slate-900 mb-1 text-lg">{d.db} dB</div>
+            <Popup className="dark:bg-zinc-950">
+              <div className="font-mono text-[10px] dark:text-slate-200">
+                <div className="font-bold text-slate-900 dark:text-white mb-1 text-lg">{d.db} dB</div>
                 <div className="text-orange-500 uppercase tracking-widest font-bold">{d.category || 'Other'}</div>
-                <div className="text-slate-400 mt-1">{new Date(d.timestamp).toLocaleString()}</div>
+                <div className="text-slate-500 dark:text-slate-400 mt-1">{new Date(d.timestamp).toLocaleString()}</div>
               </div>
             </Popup>
           </Circle>
         ))}
       </MapContainer>
+
+      {/* Theme Toggle Button - Heatmap Section Only */}
+      <div className="absolute top-4 left-4 z-[1000]">
+        <button 
+          onClick={toggleTheme}
+          className="p-3 bg-white dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl shadow-xl hover:bg-slate-50 dark:hover:bg-zinc-900 transition-all group"
+          title={theme === 'light' ? "Switch to Dark Mode" : "Switch to Light Mode"}
+        >
+          {theme === 'light' ? (
+            <Moon className="w-5 h-5 text-slate-600 group-hover:text-slate-900" />
+          ) : (
+            <Sun className="w-5 h-5 text-orange-500 group-hover:text-orange-400" />
+          )}
+        </button>
+      </div>
       
       {/* Detail Overlay */}
       <AnimatePresence>
@@ -271,34 +295,34 @@ const NoiseHeatmap = ({ data, userLocation }: { data: NoiseMeasurement[], userLo
             initial={{ opacity: 0, scale: 0.9, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 10 }}
-            className="absolute top-4 right-4 w-64 bg-white/90 border border-orange-500/30 rounded-xl p-4 shadow-2xl backdrop-blur-md z-[1000]"
+            className="absolute top-4 right-4 w-64 bg-white/95 dark:bg-zinc-950/95 border border-orange-500/30 rounded-xl p-4 shadow-2xl backdrop-blur-md z-[1000]"
           >
-            <div className="flex items-center justify-between mb-3 border-b border-slate-100 pb-2">
+            <div className="flex items-center justify-between mb-3 border-b border-slate-100 dark:border-zinc-800 pb-2">
               <span className="text-[10px] font-mono text-orange-500 uppercase tracking-widest">Measurement Detail</span>
-              <button onClick={() => setSelectedPoint(null)} className="text-slate-400 hover:text-slate-900">×</button>
+              <button onClick={() => setSelectedPoint(null)} className="text-slate-500 hover:text-slate-900 dark:hover:text-slate-100">×</button>
             </div>
             <div className="space-y-3">
               <div>
-                <div className="text-[10px] font-mono text-slate-400 uppercase tracking-widest mb-1">Noise Level</div>
-                <div className="text-2xl font-mono font-bold text-slate-900">{selectedPoint.db} dB</div>
+                <div className="text-[10px] font-mono text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1">Noise Level</div>
+                <div className="text-2xl font-mono font-bold text-slate-900 dark:text-white">{selectedPoint.db} dB</div>
               </div>
               <div>
-                <div className="text-[10px] font-mono text-slate-400 uppercase tracking-widest mb-1">Category</div>
+                <div className="text-[10px] font-mono text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1">Category</div>
                 <div className="text-xs font-mono text-orange-500 uppercase tracking-widest">{selectedPoint.category || 'Other'}</div>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <div className="text-[10px] font-mono text-slate-400 uppercase tracking-widest mb-1">Latitude</div>
-                  <div className="text-xs font-mono text-slate-500">{selectedPoint.lat.toFixed(6)}</div>
+                  <div className="text-[10px] font-mono text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1">Latitude</div>
+                  <div className="text-xs font-mono text-slate-600 dark:text-slate-300">{selectedPoint.lat.toFixed(6)}</div>
                 </div>
                 <div>
-                  <div className="text-[10px] font-mono text-slate-400 uppercase tracking-widest mb-1">Longitude</div>
-                  <div className="text-xs font-mono text-slate-500">{selectedPoint.lng.toFixed(6)}</div>
+                  <div className="text-[10px] font-mono text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1">Longitude</div>
+                  <div className="text-xs font-mono text-slate-600 dark:text-slate-300">{selectedPoint.lng.toFixed(6)}</div>
                 </div>
               </div>
               <div>
-                <div className="text-[10px] font-mono text-slate-400 uppercase tracking-widest mb-1">Timestamp</div>
-                <div className="text-xs font-mono text-slate-500">
+                <div className="text-[10px] font-mono text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1">Timestamp</div>
+                <div className="text-xs font-mono text-slate-600 dark:text-slate-300">
                   {new Date(selectedPoint.timestamp).toLocaleString()}
                 </div>
               </div>
@@ -308,7 +332,7 @@ const NoiseHeatmap = ({ data, userLocation }: { data: NoiseMeasurement[], userLo
       </AnimatePresence>
       
       {/* Zoom Hint */}
-      <div className="absolute bottom-4 right-4 text-[8px] font-mono text-slate-400 uppercase tracking-widest pointer-events-none z-[1000]">
+      <div className="absolute bottom-4 right-4 text-[8px] font-mono text-slate-500 dark:text-slate-400 uppercase tracking-widest pointer-events-none z-[1000]">
         Scroll to zoom • Drag to pan • Click point for details
       </div>
     </div>
@@ -316,6 +340,7 @@ const NoiseHeatmap = ({ data, userLocation }: { data: NoiseMeasurement[], userLo
 };
 
 const NoiseMapper = () => {
+  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
   const [localUserId, setLocalUserId] = useState<string>('');
   const [measurements, setMeasurements] = useState<NoiseMeasurement[]>([]);
   const [isRecording, setIsRecording] = useState(false);
@@ -326,6 +351,7 @@ const NoiseMapper = () => {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('House');
   const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
+  const [micError, setMicError] = useState<string | null>(null);
 
   const categories = ['House', 'Market', 'Park', 'Road', 'Residential Apartment', 'Office', 'Other'];
 
@@ -333,6 +359,17 @@ const NoiseMapper = () => {
   const analyserRef = useRef<AnalyserNode | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const animationFrameRef = useRef<number | null>(null);
+
+  // --- Theme Management ---
+  useEffect(() => {
+    if (theme === 'dark') {
+      window.document.documentElement.classList.add('dark');
+    } else {
+      window.document.documentElement.classList.remove('dark');
+    }
+  }, [theme]);
+
+  const toggleTheme = () => setTheme(prev => prev === 'light' ? 'dark' : 'light');
 
   // --- Local User ID & Data ---
   useEffect(() => {
@@ -375,6 +412,12 @@ const NoiseMapper = () => {
 
   // --- Audio Recording ---
   const startRecording = async () => {
+    setMicError(null);
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      setMicError("Microphone access is not supported in this browser.");
+      return;
+    }
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
@@ -390,8 +433,13 @@ const NoiseMapper = () => {
 
       setIsRecording(true);
       updateNoiseLevel();
-    } catch (err) {
+    } catch (err: any) {
       console.error("Microphone access denied:", err);
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        setMicError("Microphone access was denied. Please check your browser and system settings to allow microphone access for this site.");
+      } else {
+        setMicError(`Microphone error: ${err.message || 'Unknown error'}`);
+      }
     }
   };
 
@@ -555,7 +603,7 @@ const NoiseMapper = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-orange-500/30 relative overflow-x-hidden">
+    <div className="min-h-screen bg-slate-50 dark:bg-black text-slate-900 dark:text-slate-100 font-sans selection:bg-orange-500/30 relative overflow-x-hidden">
       <div className="atmosphere">
         <Leaf className="nature-element float-1 top-[10%] left-[5%] w-12 h-12" />
         <Bird className="nature-element float-2 top-[25%] right-[10%] w-8 h-8" />
@@ -571,14 +619,14 @@ const NoiseMapper = () => {
           <div className="flex items-center gap-3">
             <Activity className="w-6 h-6 text-orange-500" />
             <div className="flex flex-col">
-              <span className="font-bold tracking-tight text-lg uppercase leading-none">Noise Mapper</span>
-              <span className="text-[10px] text-slate-400 font-mono uppercase tracking-widest mt-1">App created by Aritra Pal</span>
+              <span className="font-bold tracking-tight text-lg uppercase leading-none dark:text-white">Noise Mapper</span>
+              <span className="text-[10px] text-slate-500 dark:text-white font-mono uppercase tracking-widest mt-1">App created by Aritra Pal</span>
             </div>
           </div>
           <div className="flex items-center gap-4">
             <button 
               onClick={() => setIsProfileOpen(true)}
-              className="p-2 hover:bg-slate-100 rounded-lg transition-colors text-slate-500 hover:text-slate-900"
+              className="p-2 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-lg transition-colors text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
             >
               <Settings className="w-5 h-5" />
             </button>
@@ -595,22 +643,22 @@ const NoiseMapper = () => {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsProfileOpen(false)}
-              className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
             />
             <motion.div 
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full max-w-md bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden"
+              className="relative w-full max-w-md bg-white dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-2xl shadow-2xl overflow-hidden"
             >
-              <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+              <div className="p-6 border-b border-slate-100 dark:border-zinc-800 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <UserCircle className="w-5 h-5 text-orange-500" />
-                  <h2 className="font-bold uppercase tracking-widest text-sm">Local Settings</h2>
+                  <h2 className="font-bold uppercase tracking-widest text-sm text-slate-900 dark:text-slate-100">Local Settings</h2>
                 </div>
                 <button 
                   onClick={() => setIsProfileOpen(false)}
-                  className="p-2 hover:bg-slate-100 rounded-lg transition-colors text-slate-500 hover:text-slate-900"
+                  className="p-2 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-lg transition-colors text-slate-500 hover:text-slate-900 dark:hover:text-slate-100"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -618,23 +666,23 @@ const NoiseMapper = () => {
 
               <div className="p-8 space-y-8">
                 {/* User Info */}
-                <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-xl border border-slate-100">
+                <div className="flex items-center gap-4 p-4 bg-slate-50 dark:bg-zinc-900/50 rounded-xl border border-slate-100 dark:border-zinc-800">
                   <div className="w-12 h-12 rounded-full bg-orange-500/20 flex items-center justify-center">
                     <UserCircle className="w-6 h-6 text-orange-500" />
                   </div>
                   <div>
-                    <div className="text-sm font-bold">Local Operator</div>
-                    <div className="text-xs text-slate-400 flex items-center gap-1">
+                    <div className="text-sm font-bold text-slate-900 dark:text-slate-100">Local Operator</div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
                       ID: {localUserId.slice(0, 8)}...
                     </div>
                   </div>
                 </div>
 
                 {/* Danger Zone */}
-                <div className="pt-6 border-t border-slate-100">
+                <div className="pt-6 border-t border-slate-100 dark:border-zinc-800">
                   <div className="mb-4">
                     <h3 className="text-xs font-bold text-red-500 uppercase tracking-widest mb-1">Danger Zone</h3>
-                    <p className="text-[10px] text-slate-400">Permanently delete all noise data recorded from this device.</p>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400">Permanently delete all noise data recorded from this device.</p>
                   </div>
                   <button 
                     onClick={handleDeleteAccount}
@@ -659,23 +707,29 @@ const NoiseMapper = () => {
             <div className="relative z-10">
               <div className="mb-6">
               <h3 className="text-[10px] font-mono text-orange-500 uppercase tracking-widest mb-2">Objective</h3>
-              <p className="text-xs text-slate-500 leading-relaxed">
+              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
                 Map urban noise levels using phone-based measurements to identify pollution hotspots and inform urban planning.
               </p>
             </div>
 
-            <div className="flex items-center justify-between mb-8 border-t border-slate-100 pt-4">
+            <div className="flex items-center justify-between mb-8 border-t border-slate-100 dark:border-slate-800 pt-4">
               <div className="flex flex-col">
-                <span className="text-[10px] font-mono text-slate-400 uppercase tracking-widest mb-1">Status</span>
+                <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1">Status</span>
                 <div className="flex items-center gap-2">
-                  <div className={cn("w-2 h-2 rounded-full", isRecording ? "bg-red-500 animate-pulse" : "bg-slate-300")} />
-                  <span className="text-sm font-mono uppercase tracking-wider">
+                  <div className={cn(
+                    "w-2 h-2 rounded-full transition-colors duration-300", 
+                    isRecording ? "bg-red-500 animate-pulse" : "bg-black dark:bg-white opacity-40"
+                  )} />
+                  <span className={cn(
+                    "text-sm font-mono uppercase tracking-wider transition-colors duration-300",
+                    isRecording ? "text-black dark:text-white" : "text-black dark:text-white opacity-40"
+                  )}>
                     {isRecording ? "Capturing" : "Standby"}
                   </span>
                 </div>
               </div>
               <div className="text-right">
-                <span className="text-[10px] font-mono text-slate-400 uppercase tracking-widest mb-1">Location</span>
+                <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1">Location</span>
                 <div className="text-sm font-mono text-orange-500">
                   {location ? `${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}` : "Acquiring..."}
                 </div>
@@ -694,21 +748,50 @@ const NoiseMapper = () => {
                     "relative w-24 h-24 rounded-full flex items-center justify-center transition-all duration-300 shadow-2xl",
                     isRecording 
                       ? "bg-red-500 hover:bg-red-600 scale-110" 
-                      : "bg-white border border-slate-200 hover:border-orange-500/50"
+                      : "bg-white dark:bg-zinc-900/50 border border-slate-200 dark:border-zinc-800 hover:border-orange-500/50"
                   )}
                 >
-                  {isRecording ? <MicOff className="w-8 h-8" /> : <Mic className="w-8 h-8 text-orange-500" />}
+                  {isRecording ? <MicOff className="w-8 h-8 text-white" /> : <Mic className="w-8 h-8 text-orange-500" />}
                 </button>
               </div>
               
+              <AnimatePresence>
+                {micError && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="mb-4 px-4 py-2 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/30 rounded-lg flex items-center gap-2 text-[10px] font-mono text-red-500 uppercase tracking-widest max-w-xs text-center"
+                  >
+                    <AlertCircle className="w-3 h-3 flex-shrink-0" />
+                    <span>{micError}</span>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+              
               <div className="text-center">
-                <div className="text-6xl font-mono font-bold tracking-tighter mb-1">
+                <div className={cn(
+                  "text-6xl font-mono font-bold tracking-tighter mb-1 transition-colors duration-300",
+                  isRecording 
+                    ? "!text-black dark:!text-white" 
+                    : "!text-black/40 dark:!text-white/40"
+                )}>
                   {currentDb.toFixed(1)}
                 </div>
-                <div className="text-[10px] font-mono text-slate-400 uppercase tracking-widest">Decibels (dB)</div>
+                <div className={cn(
+                  "text-[10px] font-mono uppercase tracking-widest transition-colors duration-300",
+                  isRecording 
+                    ? "!text-black/60 dark:!text-white/60" 
+                    : "!text-black/40 dark:!text-white/40"
+                )}>
+                  Decibels (dB)
+                </div>
                 
                 {/* Visual Meter Bar */}
-                <div className="mt-4 w-48 h-1 bg-slate-100 rounded-full overflow-hidden mx-auto">
+                <div className={cn(
+                  "mt-4 w-48 h-1 rounded-full overflow-hidden mx-auto transition-colors duration-300",
+                  isRecording ? "bg-slate-100 dark:bg-slate-800" : "bg-slate-200/50 dark:bg-slate-800/50"
+                )}>
                   <motion.div 
                     className="h-full transition-colors duration-300"
                     style={{ backgroundColor: getNoiseColor(currentDb) }}
@@ -719,28 +802,34 @@ const NoiseMapper = () => {
             </div>
 
             {/* Frequency Spectrum Section */}
-            <div className="mt-6 pt-6 border-t border-slate-100">
+            <div className={cn(
+              "mt-6 pt-6 border-t transition-colors duration-300",
+              isRecording ? "border-slate-100 dark:border-slate-800" : "border-slate-100/50 dark:border-slate-800/50"
+            )}>
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-[10px] font-mono text-slate-400 uppercase tracking-widest">Frequency Spectrum</h3>
+                <h3 className="text-[10px] font-mono text-slate-500 dark:text-slate-400 uppercase tracking-widest">Frequency Spectrum</h3>
                 <span className="text-[10px] font-mono text-orange-500">20Hz - 20kHz</span>
               </div>
               <FrequencySpectrum data={frequencyData} />
             </div>
 
             {/* Category Selection */}
-            <div className="mt-6 pt-6 border-t border-slate-100 relative">
-              <h3 className="text-[10px] font-mono text-slate-400 uppercase tracking-widest mb-4">Place Category</h3>
+            <div className={cn(
+              "mt-6 pt-6 border-t transition-colors duration-300 relative",
+              isRecording ? "border-slate-100 dark:border-slate-800" : "border-slate-100/50 dark:border-slate-800/50"
+            )}>
+              <h3 className="text-[10px] font-mono text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-4">Place Category</h3>
               <button
                 onClick={() => setIsCategoryDropdownOpen(!isCategoryDropdownOpen)}
                 className={cn(
-                  "w-full px-4 py-3 bg-slate-50 border rounded-xl flex items-center justify-between transition-all group",
-                  isCategoryDropdownOpen ? "border-orange-500/50" : "border-slate-200 hover:border-slate-300"
+                  "w-full px-4 py-3 bg-slate-50 dark:bg-slate-800/50 border rounded-xl flex items-center justify-between transition-all group",
+                  isCategoryDropdownOpen ? "border-orange-500/50" : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700"
                 )}
               >
-                <span className="text-xs font-mono uppercase tracking-widest text-slate-600 group-hover:text-slate-900">
+                <span className="text-xs font-mono uppercase tracking-widest text-slate-700 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-slate-200">
                   {selectedCategory}
                 </span>
-                <ChevronDown className={cn("w-4 h-4 text-slate-400 transition-transform duration-300", isCategoryDropdownOpen && "rotate-180")} />
+                <ChevronDown className={cn("w-4 h-4 text-slate-500 transition-transform duration-300", isCategoryDropdownOpen && "rotate-180")} />
               </button>
 
               <AnimatePresence>
@@ -754,7 +843,7 @@ const NoiseMapper = () => {
                       initial={{ opacity: 0, y: -10, scale: 0.95 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                      className="absolute left-0 right-0 bottom-full mb-2 z-50 bg-white border border-slate-200 rounded-xl shadow-2xl overflow-hidden"
+                      className="absolute left-0 right-0 bottom-full mb-2 z-50 bg-white dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl shadow-2xl overflow-hidden"
                     >
                       <div className="p-2 max-h-48 overflow-y-auto">
                         {categories.map((cat) => (
@@ -768,7 +857,7 @@ const NoiseMapper = () => {
                               "w-full px-4 py-2 rounded-lg text-left text-[10px] font-mono uppercase tracking-widest transition-all flex items-center justify-between",
                               selectedCategory === cat
                                 ? "bg-orange-500/10 text-orange-500"
-                                : "text-slate-400 hover:bg-slate-50 hover:text-slate-900"
+                                : "text-slate-500 hover:bg-slate-50 dark:hover:bg-zinc-800 hover:text-slate-900 dark:hover:text-slate-200"
                             )}
                           >
                             {cat}
@@ -789,7 +878,7 @@ const NoiseMapper = () => {
                 "w-full py-4 rounded-xl font-bold uppercase tracking-widest text-sm transition-all mt-6",
                 isRecording && location && !isUploading
                   ? "bg-orange-500 hover:bg-orange-600 text-white shadow-lg shadow-orange-500/20"
-                  : "bg-slate-100 text-slate-400 cursor-not-allowed"
+                  : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-600 cursor-not-allowed"
               )}
             >
               {isUploading ? "Transmitting..." : "Log Measurement"}
@@ -805,35 +894,40 @@ const NoiseMapper = () => {
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-2">
                 <MapIcon className="w-5 h-5 text-orange-500" />
-                <h2 className="font-bold uppercase tracking-widest text-sm">Noise Heatmap</h2>
+                <h2 className="font-bold uppercase tracking-widest text-sm text-slate-900 dark:text-slate-100">Noise Heatmap</h2>
               </div>
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: getNoiseColor(0) }} />
-                  <span className="text-[10px] font-mono text-slate-400">0dB</span>
+                  <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400">0dB</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: getNoiseColor(140) }} />
-                  <span className="text-[10px] font-mono text-slate-400">140dB</span>
+                  <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400">140dB</span>
                 </div>
               </div>
             </div>
             <div className="flex-1 min-h-0">
-              <NoiseHeatmap data={measurements} userLocation={location} />
+              <NoiseHeatmap 
+                data={measurements} 
+                userLocation={location} 
+                theme={theme} 
+                toggleTheme={toggleTheme} 
+              />
             </div>
           </div>
 
           {/* Recent Logs */}
           <div className="glass-card overflow-hidden">
-            <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-              <h2 className="font-bold uppercase tracking-widest text-sm">Global Noise Logs</h2>
-              <span className="text-[10px] font-mono text-slate-400">
+            <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/30">
+              <h2 className="font-bold uppercase tracking-widest text-sm text-slate-900 dark:text-slate-100">Global Noise Logs</h2>
+              <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400">
                 {measurements.length} Total Records
               </span>
             </div>
             <div className="max-h-[500px] overflow-y-auto custom-scrollbar">
               <table className="w-full text-left border-collapse">
-                <thead className="sticky top-0 bg-slate-50 z-20 text-[10px] font-mono text-slate-400 uppercase tracking-widest shadow-sm">
+                <thead className="sticky top-0 bg-slate-50 dark:bg-zinc-950 z-20 text-[10px] font-mono text-slate-500 dark:text-slate-400 uppercase tracking-widest shadow-sm">
                   <tr>
                     <th className="p-4 font-normal">Time</th>
                     <th className="p-4 font-normal">Source</th>
@@ -844,7 +938,7 @@ const NoiseMapper = () => {
                     <th className="p-4 font-normal text-right">Action</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50">
                   <AnimatePresence mode="popLayout">
                     {measurements.map((m) => {
                       const date = m.timestamp && (m.timestamp as any).seconds 
@@ -859,27 +953,27 @@ const NoiseMapper = () => {
                           animate={{ opacity: 1 }}
                           exit={{ opacity: 0, x: -20 }}
                           className={cn(
-                            "hover:bg-slate-50/50 transition-colors group",
-                            isOwner && "bg-orange-500/[0.05]"
+                            "hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors group",
+                            isOwner && "bg-orange-500/[0.05] dark:bg-orange-500/[0.02]"
                           )}
                         >
-                          <td className="p-4 text-xs text-slate-400 font-mono whitespace-nowrap">
+                          <td className="p-4 text-xs text-slate-500 dark:text-slate-400 font-mono whitespace-nowrap">
                             {isNaN(date.getTime()) ? '---' : date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                           </td>
                           <td className="p-4">
                             <div className="flex items-center gap-2">
                               <div className={cn(
                                 "w-1.5 h-1.5 rounded-full",
-                                isOwner ? "bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.5)]" : "bg-slate-300"
+                                isOwner ? "bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.5)]" : "bg-slate-300 dark:bg-slate-700"
                               )} title={isOwner ? "Your Recording" : "Community Recording"} />
-                              <span className="text-[10px] font-mono text-slate-400 uppercase">
+                              <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400 uppercase">
                                 {isOwner ? "You" : `ID:${m.uid?.slice(0, 4)}`}
                               </span>
                             </div>
                           </td>
                           <td className="p-4">
                             <div className="flex items-center gap-3">
-                              <div className="w-16 h-1 bg-slate-100 rounded-full overflow-hidden hidden sm:block">
+                              <div className="w-16 h-1 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden hidden sm:block">
                                 <div 
                                   className="h-full transition-all duration-500" 
                                   style={{ 
@@ -888,11 +982,11 @@ const NoiseMapper = () => {
                                   }}
                                 />
                               </div>
-                              <span className="text-sm font-mono font-bold whitespace-nowrap">{(m.db || 0).toFixed(1)} dB</span>
+                              <span className="text-sm font-mono font-bold whitespace-nowrap text-slate-900 dark:text-slate-100">{(m.db || 0).toFixed(1)} dB</span>
                             </div>
                           </td>
                           <td className="p-4">
-                            <span className="text-[10px] font-mono text-slate-400 uppercase tracking-widest whitespace-nowrap">
+                            <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400 uppercase tracking-widest whitespace-nowrap">
                               {m.category || 'Other'}
                             </span>
                           </td>
@@ -907,7 +1001,7 @@ const NoiseMapper = () => {
                               {getNoiseQuality(m.db || 0)}
                             </span>
                           </td>
-                          <td className="p-4 text-[10px] text-slate-400 font-mono whitespace-nowrap">
+                          <td className="p-4 text-[10px] text-slate-500 dark:text-slate-400 font-mono whitespace-nowrap">
                             {m.lat?.toFixed(4)}, {m.lng?.toFixed(4)}
                           </td>
                           <td className="p-4 text-right">
@@ -916,7 +1010,7 @@ const NoiseMapper = () => {
                                 href={`https://www.google.com/maps/search/?api=1&query=${m.lat},${m.lng}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="p-2 text-slate-500 hover:text-orange-500 transition-colors flex items-center gap-1 text-[10px] font-mono uppercase tracking-widest"
+                                className="p-2 text-slate-600 hover:text-orange-500 transition-colors flex items-center gap-1 text-[10px] font-mono uppercase tracking-widest"
                                 title="Display in Google Maps"
                               >
                                 <MapPin className="w-3.5 h-3.5" />
@@ -924,7 +1018,7 @@ const NoiseMapper = () => {
                               {isOwner && (
                                 <button 
                                   onClick={() => m.id && deleteMeasurement(m.id)}
-                                  className="p-2 text-slate-500 hover:text-red-500 transition-colors"
+                                  className="p-2 text-slate-600 hover:text-red-500 transition-colors"
                                   title="Delete Log"
                                 >
                                   <Trash2 className="w-3.5 h-3.5" />
@@ -940,8 +1034,8 @@ const NoiseMapper = () => {
               </table>
               {measurements.length === 0 && (
                 <div className="p-20 text-center flex flex-col items-center justify-center gap-3">
-                  <Activity className="w-8 h-8 text-slate-300 animate-pulse" />
-                  <div className="text-slate-400 font-mono text-xs uppercase tracking-widest">
+                  <Activity className="w-8 h-8 text-slate-300 dark:text-slate-700 animate-pulse" />
+                  <div className="text-slate-500 dark:text-slate-400 font-mono text-xs uppercase tracking-widest">
                     Waiting for sensor data...
                   </div>
                 </div>
@@ -951,32 +1045,32 @@ const NoiseMapper = () => {
 
           {/* Data Management */}
           <div className="glass-card p-6 space-y-4">
-            <h3 className="text-xs font-mono text-slate-400 uppercase tracking-widest mb-4">Data Management</h3>
+            <h3 className="text-xs font-mono text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-4">Data Management</h3>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <button 
                 onClick={downloadCSV}
-                className="flex items-center justify-between p-4 bg-slate-50 hover:bg-slate-100 rounded-xl transition-colors group border border-slate-100"
+                className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/30 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors group border border-slate-100 dark:border-slate-800"
               >
                 <div className="flex items-center gap-3">
                   <Download className="w-5 h-5 text-blue-500" />
                   <div className="text-left">
-                    <span className="text-sm font-medium block">Download My Data</span>
-                    <span className="text-[10px] text-slate-400">Save your records to your device</span>
+                    <span className="text-sm font-medium block text-slate-900 dark:text-slate-100">Download My Data</span>
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400">Save your records to your device</span>
                   </div>
                 </div>
-                <span className="text-[10px] font-mono text-slate-400 group-hover:text-slate-600">.csv</span>
+                <span className="text-[10px] font-mono text-slate-500 group-hover:text-slate-600">.csv</span>
               </button>
 
               <div {...getRootProps()} className={cn(
                 "p-4 border-2 border-dashed rounded-xl transition-all cursor-pointer text-center flex flex-col items-center justify-center gap-2",
-                isDragActive ? "border-orange-500 bg-orange-500/5" : "border-slate-200 hover:border-slate-300"
+                isDragActive ? "border-orange-500 bg-orange-500/5" : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700"
               )}>
                 <input {...getInputProps()} />
                 <Upload className="w-5 h-5 text-orange-500" />
                 <div className="text-center">
-                  <span className="text-sm font-medium block">Upload Existing Data</span>
-                  <span className="text-[10px] text-slate-400">Load records from a file</span>
+                  <span className="text-sm font-medium block text-slate-900 dark:text-slate-100">Upload Existing Data</span>
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400">Load records from a file</span>
                 </div>
               </div>
             </div>
@@ -985,9 +1079,9 @@ const NoiseMapper = () => {
       </main>
 
       {/* Footer Info */}
-      <footer className="max-w-7xl mx-auto p-6 border-t border-slate-100 mt-12 flex flex-col sm:flex-row items-center justify-between gap-4 text-[10px] font-mono text-slate-400 uppercase tracking-widest">
+      <footer className="max-w-7xl mx-auto p-6 border-t border-slate-100 dark:border-slate-800 mt-12 flex flex-col sm:flex-row items-center justify-between gap-4 text-[10px] font-mono text-slate-500 dark:text-slate-400 uppercase tracking-widest">
         <div className="flex items-center gap-4">
-          <span>System v1.0.4</span>
+          <span>System v1.0.5</span>
           <span>•</span>
           <span>Encrypted Transmission</span>
         </div>
