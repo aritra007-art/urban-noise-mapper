@@ -273,21 +273,6 @@ const NoiseHeatmap = ({ data, userLocation, theme, toggleTheme }: { data: NoiseM
           </Circle>
         ))}
       </MapContainer>
-
-      {/* Theme Toggle Button - Heatmap Section Only */}
-      <div className="absolute top-4 left-4 z-[1000]">
-        <button 
-          onClick={toggleTheme}
-          className="p-3 bg-white dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl shadow-xl hover:bg-slate-50 dark:hover:bg-zinc-900 transition-all group"
-          title={theme === 'light' ? "Switch to Dark Mode" : "Switch to Light Mode"}
-        >
-          {theme === 'light' ? (
-            <Moon className="w-5 h-5 text-slate-600 group-hover:text-slate-900" />
-          ) : (
-            <Sun className="w-5 h-5 text-orange-500 group-hover:text-orange-400" />
-          )}
-        </button>
-      </div>
       
       {/* Detail Overlay */}
       <AnimatePresence>
@@ -914,13 +899,26 @@ const NoiseMapper = () => {
                 <h2 className="font-bold uppercase tracking-widest text-sm text-slate-900 dark:text-slate-100">Noise Heatmap</h2>
               </div>
               <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: getNoiseColor(0) }} />
-                  <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400">0dB</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: getNoiseColor(140) }} />
-                  <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400">140dB</span>
+                <button 
+                  onClick={toggleTheme}
+                  className="p-2 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-lg hover:bg-slate-100 dark:hover:bg-zinc-800 transition-all group"
+                  title={theme === 'light' ? "Switch to Dark Mode" : "Switch to Light Mode"}
+                >
+                  {theme === 'light' ? (
+                    <Moon className="w-4 h-4 text-slate-600 group-hover:text-slate-900" />
+                  ) : (
+                    <Sun className="w-4 h-4 text-orange-500 group-hover:text-orange-400" />
+                  )}
+                </button>
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: getNoiseColor(0) }} />
+                    <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400">0dB</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: getNoiseColor(140) }} />
+                    <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400">140dB</span>
+                  </div>
                 </div>
               </div>
             </div>
